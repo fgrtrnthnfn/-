@@ -1656,7 +1656,7 @@ do
         return Textbox;
     end;
 
-    -- ========= ИСПРАВЛЕННЫЙ ADDTOGGLE С ГАЛОЧКОЙ =========
+    -- ========= ИСПРАВЛЕННЫЙ ADDTOGGLE С ГАЛОЧКОЙ ПО ЦЕНТРУ И ЦВЕТОМ OUTLINECOLOR =========
     function Funcs:AddToggle(Idx, Info)
         assert(Info.Text, 'AddToggle: Missing `Text` string.')
 
@@ -1697,17 +1697,19 @@ do
             BorderColor3 = 'OutlineColor';
         });
 
-        -- ГАЛОЧКА (текстовая)
+        -- Галочка: по центру, цветом OutlineColor
         local Checkmark = Library:CreateLabel({
             Text = "✓";
-            TextSize = 14;
-            TextColor3 = Library.FontColor;
+            TextSize = 16;
+            TextColor3 = Library.OutlineColor;
             Size = UDim2.new(1, 0, 1, 0);
             Visible = Toggle.Value;
             ZIndex = 7;
             Parent = ToggleInner;
+            TextXAlignment = Enum.TextXAlignment.Center;
+            TextYAlignment = Enum.TextYAlignment.Center;
         });
-        Library:AddToRegistry(Checkmark, { TextColor3 = 'FontColor' });
+        Library:AddToRegistry(Checkmark, { TextColor3 = 'OutlineColor' });
 
         local ToggleLabel = Library:CreateLabel({
             Size = UDim2.new(0, 216, 1, 0);
@@ -1744,9 +1746,7 @@ do
         end
 
         function Toggle:Display()
-            -- Показываем галочку, если включено
             Checkmark.Visible = Toggle.Value;
-            -- Можно также менять фон, но для чистоты оставим как опцию (если хочешь, убери)
             ToggleInner.BackgroundColor3 = Toggle.Value and Library.AccentColor or Library.MainColor;
             ToggleInner.BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.OutlineColor;
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
@@ -1800,7 +1800,7 @@ do
         Library:UpdateDependencyBoxes();
         return Toggle;
     end;
-    -- ====================================================
+    -- ======================================================================
 
     function Funcs:AddSlider(Idx, Info)
         assert(Info.Default, 'AddSlider: Missing default value.');
@@ -2678,7 +2678,7 @@ function Library:CreateWindow(...)
         BorderColor3 = 'AccentColor';
     });
 
-    -- Центрированный заголовок окна
+    -- ЦЕНТРИРОВАННЫЙ ЗАГОЛОВОК
     local WindowLabel = Library:CreateLabel({
         AnchorPoint = Vector2.new(0.5, 0);
         Position = UDim2.new(0.5, 0, 0, 0);
