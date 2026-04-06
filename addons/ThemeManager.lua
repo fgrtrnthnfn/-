@@ -1,18 +1,17 @@
 local httpService = game:GetService('HttpService')
 local ThemeManager = {} do
 	ThemeManager.Folder = 'LinoriaLibSettings'
-	-- if not isfolder(ThemeManager.Folder) then makefolder(ThemeManager.Folder) end
 
 	ThemeManager.Library = nil
 	ThemeManager.BuiltInThemes = {
-		['Default'] 		= { 1, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1c1c1c","AccentColor":"0055ff","BackgroundColor":"141414","OutlineColor":"323232"}') },
-		['BBot'] 			= { 2, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1e1e","AccentColor":"7e48a3","BackgroundColor":"232323","OutlineColor":"141414"}') },
-		['Fatality']		= { 3, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1842","AccentColor":"c50754","BackgroundColor":"191335","OutlineColor":"3c355d"}') },
-		['Jester'] 			= { 4, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"242424","AccentColor":"db4467","BackgroundColor":"1c1c1c","OutlineColor":"373737"}') },
-		['Mint'] 			= { 5, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"242424","AccentColor":"3db488","BackgroundColor":"1c1c1c","OutlineColor":"373737"}') },
-		['Tokyo Night'] 	= { 6, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"191925","AccentColor":"6759b3","BackgroundColor":"16161f","OutlineColor":"323232"}') },
-		['Ubuntu'] 			= { 7, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"3e3e3e","AccentColor":"e2581e","BackgroundColor":"323232","OutlineColor":"191919"}') },
-		['Quartz'] 			= { 8, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"232330","AccentColor":"426e87","BackgroundColor":"1d1b26","OutlineColor":"27232f"}') },
+		['Default'] 		= { 1, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"1c1c1c","MainTransparency":0,"AccentColor":"0055ff","AccentTransparency":0,"BackgroundColor":"141414","BackgroundTransparency":0,"OutlineColor":"323232","OutlineTransparency":0}') },
+		['BBot'] 			= { 2, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"1e1e1e","MainTransparency":0,"AccentColor":"7e48a3","AccentTransparency":0,"BackgroundColor":"232323","BackgroundTransparency":0,"OutlineColor":"141414","OutlineTransparency":0}') },
+		['Fatality']		= { 3, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"1e1842","MainTransparency":0,"AccentColor":"c50754","AccentTransparency":0,"BackgroundColor":"191335","BackgroundTransparency":0,"OutlineColor":"3c355d","OutlineTransparency":0}') },
+		['Jester'] 			= { 4, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"242424","MainTransparency":0,"AccentColor":"db4467","AccentTransparency":0,"BackgroundColor":"1c1c1c","BackgroundTransparency":0,"OutlineColor":"373737","OutlineTransparency":0}') },
+		['Mint'] 			= { 5, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"242424","MainTransparency":0,"AccentColor":"3db488","AccentTransparency":0,"BackgroundColor":"1c1c1c","BackgroundTransparency":0,"OutlineColor":"373737","OutlineTransparency":0}') },
+		['Tokyo Night'] 	= { 6, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"191925","MainTransparency":0,"AccentColor":"6759b3","AccentTransparency":0,"BackgroundColor":"16161f","BackgroundTransparency":0,"OutlineColor":"323232","OutlineTransparency":0}') },
+		['Ubuntu'] 			= { 7, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"3e3e3e","MainTransparency":0,"AccentColor":"e2581e","AccentTransparency":0,"BackgroundColor":"323232","BackgroundTransparency":0,"OutlineColor":"191919","OutlineTransparency":0}') },
+		['Quartz'] 			= { 8, httpService:JSONDecode('{"FontColor":"ffffff","FontTransparency":0,"MainColor":"232330","MainTransparency":0,"AccentColor":"426e87","AccentTransparency":0,"BackgroundColor":"1d1b26","BackgroundTransparency":0,"OutlineColor":"27232f","OutlineTransparency":0}') },
 	}
 
 	function ThemeManager:ApplyTheme(theme)
@@ -21,14 +20,35 @@ local ThemeManager = {} do
 
 		if not data then return end
 
-		-- custom themes are just regular dictionaries instead of an array with { index, dictionary }
-
 		local scheme = data[2]
-		for idx, col in next, customThemeData or scheme do
-			self.Library[idx] = Color3.fromHex(col)
-			
-			if Options[idx] then
-				Options[idx]:SetValueRGB(Color3.fromHex(col))
+		local themeData = customThemeData or scheme
+		
+		-- Применяем цвета и прозрачности
+		for idx, col in next, themeData do
+			if idx:find('Transparency') then
+				-- Это настройка прозрачности
+				local colorName = idx:gsub('Transparency', '')
+				if self.Library[colorName] and Options[colorName] then
+					local transparency = tonumber(col) or 0
+					Options[colorName].Transparency = transparency
+					if Options[colorName].Display then
+						Options[colorName]:Display()
+					end
+				end
+			else
+				-- Это цвет
+				self.Library[idx] = Color3.fromHex(col)
+				if Options[idx] then
+					Options[idx]:SetValueRGB(Color3.fromHex(col))
+					-- Восстанавливаем прозрачность для этого цвета
+					local transKey = idx .. 'Transparency'
+					if themeData[transKey] then
+						Options[idx].Transparency = tonumber(themeData[transKey]) or 0
+						if Options[idx].Display then
+							Options[idx]:Display()
+						end
+					end
+				end
 			end
 		end
 
@@ -36,11 +56,12 @@ local ThemeManager = {} do
 	end
 
 	function ThemeManager:ThemeUpdate()
-		-- This allows us to force apply themes without loading the themes tab :)
 		local options = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
 		for i, field in next, options do
 			if Options and Options[field] then
 				self.Library[field] = Options[field].Value
+				-- Обновляем прозрачность в библиотеке
+				self.Library[field .. 'Transparency'] = Options[field].Transparency or 0
 			end
 		end
 
@@ -76,11 +97,21 @@ local ThemeManager = {} do
 	end
 
 	function ThemeManager:CreateThemeManager(groupbox)
-		groupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
-		groupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
-		groupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
-		groupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
-		groupbox:AddLabel('Font color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
+		-- Цвета со слайдерами прозрачности
+		groupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor, Transparency = self.Library.BackgroundTransparency or 0 })
+		groupbox:AddSlider('BackgroundTransparency', { Text = 'Background transparency', Default = self.Library.BackgroundTransparency or 0, Min = 0, Max = 1, Rounding = 2 })
+		
+		groupbox:AddLabel('Main color'):AddColorPicker('MainColor', { Default = self.Library.MainColor, Transparency = self.Library.MainTransparency or 0 })
+		groupbox:AddSlider('MainTransparency', { Text = 'Main transparency', Default = self.Library.MainTransparency or 0, Min = 0, Max = 1, Rounding = 2 })
+		
+		groupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor, Transparency = self.Library.AccentTransparency or 0 })
+		groupbox:AddSlider('AccentTransparency', { Text = 'Accent transparency', Default = self.Library.AccentTransparency or 0, Min = 0, Max = 1, Rounding = 2 })
+		
+		groupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor, Transparency = self.Library.OutlineTransparency or 0 })
+		groupbox:AddSlider('OutlineTransparency', { Text = 'Outline transparency', Default = self.Library.OutlineTransparency or 0, Min = 0, Max = 1, Rounding = 2 })
+		
+		groupbox:AddLabel('Font color'):AddColorPicker('FontColor', { Default = self.Library.FontColor, Transparency = self.Library.FontTransparency or 0 })
+		groupbox:AddSlider('FontTransparency', { Text = 'Font transparency', Default = self.Library.FontTransparency or 0, Min = 0, Max = 1, Rounding = 2 })
 
 		local ThemesArray = {}
 		for Name, Theme in next, self.BuiltInThemes do
@@ -133,11 +164,37 @@ local ThemeManager = {} do
 			self:ThemeUpdate()
 		end
 
+		-- Обновление при изменении цвета
 		Options.BackgroundColor:OnChanged(UpdateTheme)
 		Options.MainColor:OnChanged(UpdateTheme)
 		Options.AccentColor:OnChanged(UpdateTheme)
 		Options.OutlineColor:OnChanged(UpdateTheme)
 		Options.FontColor:OnChanged(UpdateTheme)
+		
+		-- Обновление при изменении прозрачности
+		Options.BackgroundTransparency:OnChanged(UpdateTheme)
+		Options.MainTransparency:OnChanged(UpdateTheme)
+		Options.AccentTransparency:OnChanged(UpdateTheme)
+		Options.OutlineTransparency:OnChanged(UpdateTheme)
+		Options.FontTransparency:OnChanged(UpdateTheme)
+		
+		-- Синхронизация прозрачности с ColorPicker
+		local function syncTransparency(colorOption, transOption)
+			if colorOption and transOption then
+				colorOption.OnChanged = colorOption.OnChanged or function() end
+				local oldCallback = colorOption.Callback
+				colorOption.Callback = function(color)
+					if oldCallback then oldCallback(color) end
+					transOption:SetValue(colorOption.Transparency or 0)
+				end
+			end
+		end
+		
+		syncTransparency(Options.BackgroundColor, Options.BackgroundTransparency)
+		syncTransparency(Options.MainColor, Options.MainTransparency)
+		syncTransparency(Options.AccentColor, Options.AccentTransparency)
+		syncTransparency(Options.OutlineColor, Options.OutlineTransparency)
+		syncTransparency(Options.FontColor, Options.FontTransparency)
 	end
 
 	function ThemeManager:GetCustomTheme(file)
@@ -166,9 +223,11 @@ local ThemeManager = {} do
 
 		for _, field in next, fields do
 			theme[field] = Options[field].Value:ToHex()
+			theme[field .. 'Transparency'] = Options[field].Transparency or 0
 		end
 
 		writefile(self.Folder .. '/themes/' .. file .. '.json', httpService:JSONEncode(theme))
+		self.Library:Notify(string.format('Theme "%s" saved', file))
 	end
 
 	function ThemeManager:ReloadCustomThemes()
@@ -178,8 +237,6 @@ local ThemeManager = {} do
 		for i = 1, #list do
 			local file = list[i]
 			if file:sub(-5) == '.json' then
-				-- i hate this but it has to be done ...
-
 				local pos = file:find('.json', 1, true)
 				local char = file:sub(pos, pos)
 
@@ -204,12 +261,18 @@ local ThemeManager = {} do
 	function ThemeManager:BuildFolderTree()
 		local paths = {}
 
-		-- build the entire tree if a path is like some-hub/phantom-forces
-		-- makefolder builds the entire tree on Synapse X but not other exploits
-
-		local parts = self.Folder:split('/')
+		local parts = {}
+		for part in self.Folder:gmatch('[^/]+') do
+			table.insert(parts, part)
+		end
+		
 		for idx = 1, #parts do
-			paths[#paths + 1] = table.concat(parts, '/', 1, idx)
+			local path = ''
+			for i = 1, idx do
+				if i > 1 then path = path .. '/' end
+				path = path .. parts[i]
+			end
+			paths[#paths + 1] = path
 		end
 
 		table.insert(paths, self.Folder .. '/themes')
