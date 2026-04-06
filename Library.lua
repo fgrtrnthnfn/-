@@ -164,8 +164,22 @@ end;
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
 
+    -- Находим ResizeHandle, если он есть (чтобы не мешать изменению размера)
+    local ResizeHandle = Instance:FindFirstChild("ResizeHandle")
+
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- Если есть ResizeHandle и мышь над ним, не начинаем перетаскивание
+            if ResizeHandle and ResizeHandle:IsDescendantOf(Instance) then
+                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                local handleAbsPos = ResizeHandle.AbsolutePosition
+                local handleSize = ResizeHandle.AbsoluteSize
+                if mousePos.X >= handleAbsPos.X and mousePos.X <= handleAbsPos.X + handleSize.X
+                    and mousePos.Y >= handleAbsPos.Y and mousePos.Y <= handleAbsPos.Y + handleSize.Y then
+                    return
+                end
+            end
+
             local ObjPos = Vector2.new(
                 Mouse.X - Instance.AbsolutePosition.X,
                 Mouse.Y - Instance.AbsolutePosition.Y
@@ -2944,11 +2958,51 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
+    -- Изменяем MakeDraggable, чтобы он игнорировал хендл
+    local oldMakeDraggable = Library.MakeDraggable
+    Library.MakeDraggable = function(Instance, Cutoff)
+        Instance.Active = true;
+        local ResizeHandle = Instance:FindFirstChild("ResizeHandle")
+        Instance.InputBegan:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if ResizeHandle and ResizeHandle:IsDescendantOf(Instance) then
+                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                    local handleAbsPos = ResizeHandle.AbsolutePosition
+                    local handleSize = ResizeHandle.AbsoluteSize
+                    if mousePos.X >= handleAbsPos.X and mousePos.X <= handleAbsPos.X + handleSize.X
+                        and mousePos.Y >= handleAbsPos.Y and mousePos.Y <= handleAbsPos.Y + handleSize.Y then
+                        return
+                    end
+                end
+                local ObjPos = Vector2.new(
+                    Mouse.X - Instance.AbsolutePosition.X,
+                    Mouse.Y - Instance.AbsolutePosition.Y
+                );
+                if ObjPos.Y > (Cutoff or 40) then
+                    return;
+                end;
+                while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                    Instance.Position = UDim2.new(
+                        0,
+                        Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
+                        0,
+                        Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
+                    );
+                    RenderStepped:Wait();
+                end;
+            end;
+        end)
+    end
+
     Library:MakeDraggable(Outer, 25);
 
-    -- Resize handle (bottom-right corner) - исправленная версия (без Enum.Cursor)
+    -- Восстанавливаем оригинальную функцию (чтобы не затронуть другие вызовы)
+    Library.MakeDraggable = oldMakeDraggable
+
+    -- Resize handle (bottom-right corner)
     if Config.Resizable then
         local ResizeHandle = Library:Create('Frame', {
+            Name = "ResizeHandle",
             BackgroundColor3 = Library.AccentColor;
             BackgroundTransparency = 0.5;
             AnchorPoint = Vector2.new(1, 1);
@@ -2973,6 +3027,7 @@ function Library:CreateWindow(...)
                 startSize = Outer.Size;
                 startPos = Outer.Position;
                 startMouse = Vector2.new(Mouse.X, Mouse.Y);
+                Input.StopPropagation() -- не даём событию уйти на Outer
             end
         end);
 
@@ -2988,10 +3043,10 @@ function Library:CreateWindow(...)
             local newWidth = math.clamp(startSize.X.Offset + delta.X, Config.MinSize.X, Config.MaxSize.X);
             local newHeight = math.clamp(startSize.Y.Offset + delta.Y, Config.MinSize.Y, Config.MaxSize.Y);
             Outer.Size = UDim2.new(0, newWidth, 0, newHeight);
-            -- Adjust position if anchored (например, при центрировании)
+            -- Если окно центрировано, корректируем позицию, чтобы оно оставалось по центру
             if Config.AnchorPoint.X == 0.5 then
-                local newXOffset = startPos.X.Offset + (startSize.X.Offset - newWidth) * 0.5;
-                Outer.Position = UDim2.new(0, newXOffset, startPos.Y.Offset, startPos.Y.Offset);
+                local newXOffset = startPos.X.Offset + (startSize.X.Offset - newWidth) * 0.5
+                Outer.Position = UDim2.new(0, newXOffset, startPos.Y.Offset, startPos.Y.Offset)
             end
         end));
     end
