@@ -63,7 +63,7 @@ local ThemeManager = {} do
 		circle.BorderSizePixel = 0
 		circle.Position = UDim2.new(0, x, 0, y)
 		circle.Size = UDim2.new(0, 0, 0, 0)
-		circle.ZIndex = 10
+		circle.ZIndex = 9999999
 		circle.Parent = clickEffectGui
 
 		local corner = Instance.new('UICorner')
