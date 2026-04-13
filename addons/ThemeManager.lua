@@ -19,8 +19,9 @@ local ThemeManager = {} do
 	}
 
 	-- Конфигурация эффекта клика (изменяется только в коде)
-	local CLICK_EFFECT_MAX_SIZE = 80 		-- максимальный радиус/размер круга
-	local CLICK_EFFECT_TWEEN_TIME = 0.25 	-- длительность анимации в секундах
+	local CLICK_EFFECT_MAX_SIZE = 50      -- максимальный радиус круга
+	local CLICK_EFFECT_GROW_TIME = 0.5    -- время расширения до максимального размера (сек)
+	local CLICK_EFFECT_FADE_TIME = 0.5    -- время затухания после роста (сек)
 
 	local clickEffectGui = nil
 	local clickEffectEnabled = true -- всегда true, нельзя отключить
@@ -69,25 +70,21 @@ local ThemeManager = {} do
 		corner.CornerRadius = UDim.new(1, 0)
 		corner.Parent = circle
 
-		-- Анимация размера и исчезания
+		-- Анимация размера
 		local targetSize = UDim2.new(0, CLICK_EFFECT_MAX_SIZE * 2, 0, CLICK_EFFECT_MAX_SIZE * 2)
-		local tweenInfo = TweenInfo.new(CLICK_EFFECT_TWEEN_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		local sizeTween = TweenService:Create(circle, tweenInfo, { Size = targetSize })
-		local fadeTween = TweenService:Create(circle, TweenInfo.new(CLICK_EFFECT_TWEEN_TIME * 0.7, Enum.EasingStyle.Linear), { BackgroundTransparency = 1 })
-
+		local growTweenInfo = TweenInfo.new(CLICK_EFFECT_GROW_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local sizeTween = TweenService:Create(circle, growTweenInfo, { Size = targetSize })
 		sizeTween:Play()
-		fadeTween:Play()
 
-		-- Удаление после завершения
+		-- После завершения роста – затухание
 		sizeTween.Completed:Connect(function()
-			fadeTween.Completed:Wait()
-			circle:Destroy()
+			local fadeTweenInfo = TweenInfo.new(CLICK_EFFECT_FADE_TIME, Enum.EasingStyle.Linear)
+			local fadeTween = TweenService:Create(circle, fadeTweenInfo, { BackgroundTransparency = 1 })
+			fadeTween:Play()
+			fadeTween.Completed:Connect(function()
+				circle:Destroy()
+			end)
 		end)
-	end
-
-	-- Обновление цвета эффекта при смене темы/настроек
-	function ThemeManager:UpdateClickEffectColor()
-		-- ничего не делаем, цвет берётся из Library при создании круга
 	end
 
 	function ThemeManager:ApplyTheme(theme)
