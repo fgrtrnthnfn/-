@@ -212,6 +212,8 @@ local ThemeManager = {} do
 		
 		groupbox:AddDivider()
 		groupbox:AddInput('ClickSoundId', { Text = 'Click Sound ID (rbxassetid://...)', Default = savedClickSound })
+		-- Принудительно устанавливаем загруженное значение, чтобы синхронизировать clickSoundId и поле
+		Options.ClickSoundId:SetValue(savedClickSound)
 		Options.ClickSoundId:OnChanged(function()
 			local id = Options.ClickSoundId.Value
 			if id ~= "" and not id:find("rbxassetid://") then
